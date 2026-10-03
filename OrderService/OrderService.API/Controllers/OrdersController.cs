@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using OrderService.Application.DTOs;
 using OrderService.Application.Interfaces;
+using OrderService.Application.Service;
 using OrderService.Domain.Entities;
 using OrderService.Infrastructure.DBContext;
 using System.Security.Claims;
@@ -14,13 +15,15 @@ namespace OrderService.API.Controllers
     {
         private readonly OrderDbContext _dbContext;
         private readonly IProductClient _productClient;
-
+        private readonly RabbitMqPublisher _publisher;
         public OrdersController(
             OrderDbContext dbContext,
-            IProductClient productClient)
+            IProductClient productClient,
+            RabbitMqPublisher publisher)
         {
             _dbContext = dbContext;
             _productClient = productClient;
+            _publisher = publisher;
         }
 
         [HttpPost]
@@ -72,6 +75,16 @@ namespace OrderService.API.Controllers
             _dbContext.Orders.Add(order);
 
             await _dbContext.SaveChangesAsync();
+            await _publisher.PublishAsync(
+            new OrderCreatedEvent
+            {
+                OrderId = order.Id,
+                UserId = order.UserId,
+                ProductId = order.ProductId,
+                Quantity = order.Quantity,
+                TotalPrice = order.TotalPrice,
+                CreatedAt = order.CreatedAt
+            });
 
             return Ok(order);
         }

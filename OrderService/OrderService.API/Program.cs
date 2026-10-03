@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OrderService.Application.Clients;
 using OrderService.Application.Interfaces;
+using OrderService.Application.Service;
 using OrderService.Infrastructure.DBContext;
 using System.Text;
 
@@ -73,6 +74,7 @@ builder.Services
                         Encoding.UTF8.GetBytes(jwtKey!))
             };
     });
+builder.Services.AddSingleton<RabbitMqPublisher>();
 builder.Services.AddHttpClient<IProductClient, ProductClient>(
     client =>
     {
