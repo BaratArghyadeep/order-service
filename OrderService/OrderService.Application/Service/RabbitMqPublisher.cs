@@ -12,7 +12,7 @@ namespace OrderService.Application.Service
         {
             var factory = new ConnectionFactory
             {
-                HostName = "host.docker.internal"
+                HostName = "rabbitmq"
             };
 
             await using var connection =

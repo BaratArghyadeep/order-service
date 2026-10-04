@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using OrderService.Application.Clients;
 using OrderService.Application.Interfaces;
 using OrderService.Application.Service;
@@ -50,7 +52,21 @@ builder.Services.AddDbContext<OrderDbContext>(options =>
     options.UseSqlite(
         builder.Configuration.GetConnectionString("DefaultConnection")));
 var jwtKey = builder.Configuration["Jwt:Key"];
-
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource =>
+        resource.AddService("OrderService"))
+    .WithTracing(tracing =>
+    {
+        tracing
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddEntityFrameworkCoreInstrumentation()
+            .AddOtlpExporter(options =>
+            {
+                options.Endpoint =
+                    new Uri("http://jaeger:4317");
+            });
+    });
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -79,7 +95,7 @@ builder.Services.AddHttpClient<IProductClient, ProductClient>(
     client =>
     {
         client.BaseAddress =
-            new Uri("http://host.docker.internal:5001/");
+    new Uri("http://productservice:8080/");
     });
 var app = builder.Build();
 
